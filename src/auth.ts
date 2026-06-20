@@ -15,31 +15,81 @@ const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
 const REDIRECT_PORT = 8765;
 const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/oauth2callback`;
 const TOKEN_SECRET_KEY = 'colabDrive.googleToken';
+const CLIENT_SECRET_KEY = 'colabDrive.clientSecret';
 // Abandon the local sign-in server if the user never completes the flow, so we
 // don't hold the redirect port open forever.
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 
-/**
- * Reads client_secret.json from the extension folder.
- * The user drops the file downloaded from Google Cloud Console here.
- */
-function loadClientConfig(context: vscode.ExtensionContext): {
+interface ClientConfig {
   clientId: string;
   clientSecret: string;
-} {
-  const secretsPath = path.join(context.extensionPath, 'client_secret.json');
-  if (!fs.existsSync(secretsPath)) {
+}
+
+/**
+ * Thrown when no OAuth credentials are configured, so the UI can prompt the
+ * user to run "Set up credentials" instead of showing a raw error.
+ */
+export class MissingCredentialsError extends Error {
+  constructor() {
+    super('No Google credentials configured.');
+    this.name = 'MissingCredentialsError';
+  }
+}
+
+/** Validate and extract the bits we need from a Google OAuth client JSON. */
+function parseClientConfig(raw: string): ClientConfig {
+  let json: any;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error('The credentials file is not valid JSON.');
+  }
+  const cfg = json.installed || json.web;
+  if (!cfg || !cfg.client_id || !cfg.client_secret) {
     throw new Error(
-      'client_secret.json not found. Download it from Google Cloud Console ' +
-        '(OAuth 2.0 Client ID, Desktop app) and place it in the extension folder.'
+      'Unexpected credentials format — expected a Google OAuth client ' +
+        'JSON with an "installed" or "web" section (Desktop app type).'
     );
   }
-  const raw = JSON.parse(fs.readFileSync(secretsPath, 'utf8'));
-  const cfg = raw.installed || raw.web;
-  if (!cfg) {
-    throw new Error('client_secret.json has an unexpected format.');
-  }
   return { clientId: cfg.client_id, clientSecret: cfg.client_secret };
+}
+
+/**
+ * Loads the OAuth client config, preferring SecretStorage (set via the
+ * "Set up credentials" command) and falling back to a client_secret.json in
+ * the extension folder — handy when running from source with F5.
+ */
+async function loadClientConfig(
+  context: vscode.ExtensionContext
+): Promise<ClientConfig> {
+  const stored = await context.secrets.get(CLIENT_SECRET_KEY);
+  if (stored) {
+    return parseClientConfig(stored);
+  }
+  const secretsPath = path.join(context.extensionPath, 'client_secret.json');
+  if (fs.existsSync(secretsPath)) {
+    return parseClientConfig(fs.readFileSync(secretsPath, 'utf8'));
+  }
+  throw new MissingCredentialsError();
+}
+
+/** Validate and persist a raw client_secret.json into SecretStorage. */
+export async function storeClientConfig(
+  context: vscode.ExtensionContext,
+  raw: string
+): Promise<void> {
+  parseClientConfig(raw); // throws if the file is malformed
+  await context.secrets.store(CLIENT_SECRET_KEY, raw);
+}
+
+/** True if credentials are configured (in SecretStorage or the folder). */
+export async function hasClientConfig(
+  context: vscode.ExtensionContext
+): Promise<boolean> {
+  if (await context.secrets.get(CLIENT_SECRET_KEY)) {
+    return true;
+  }
+  return fs.existsSync(path.join(context.extensionPath, 'client_secret.json'));
 }
 
 /**
@@ -50,7 +100,7 @@ export async function getAuthClient(
   context: vscode.ExtensionContext,
   forceLogin = false
 ): Promise<OAuth2Client> {
-  const { clientId, clientSecret } = loadClientConfig(context);
+  const { clientId, clientSecret } = await loadClientConfig(context);
   const oAuth2Client = new google.auth.OAuth2(
     clientId,
     clientSecret,

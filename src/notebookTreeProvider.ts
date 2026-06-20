@@ -4,11 +4,16 @@ import { DriveService, NotebookFile } from './driveService';
 /**
  * The single source of truth for what the view is doing. Drives both the
  * welcome views and title menus (see package.json):
- *   connecting -> blank panel (nothing flashes before the real state is known)
- *   signedOut  -> "Sign in" welcome + Sign in icon
- *   signedIn   -> notebook list (or "No notebooks" hint) + Sign out
+ *   connecting      -> blank panel (nothing flashes before the state is known)
+ *   needsCredentials -> "Set up credentials" welcome
+ *   signedOut       -> "Sign in" welcome + Sign in icon
+ *   signedIn        -> notebook list (or "No notebooks" hint) + Sign out
  */
-export type AuthState = 'connecting' | 'signedIn' | 'signedOut';
+export type AuthState =
+  | 'connecting'
+  | 'needsCredentials'
+  | 'signedIn'
+  | 'signedOut';
 
 /** One row in the sidebar tree. */
 export class NotebookItem extends vscode.TreeItem {

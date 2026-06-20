@@ -2,7 +2,14 @@ import * as vscode from 'vscode';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getAuthClient, signOut, isSignedIn } from './auth';
+import {
+  getAuthClient,
+  signOut,
+  isSignedIn,
+  storeClientConfig,
+  hasClientConfig,
+  MissingCredentialsError,
+} from './auth';
 import { DriveService, NotebookFile } from './driveService';
 import { NotebookTreeProvider, AuthState } from './notebookTreeProvider';
 
@@ -40,12 +47,52 @@ export async function activate(context: vscode.ExtensionContext) {
         'Colab Drive: connected to Google Drive.'
       );
     } catch (err: any) {
+      if (err instanceof MissingCredentialsError) {
+        // Not an error the user did anything wrong — guide them to setup.
+        setState('needsCredentials');
+        return;
+      }
       setState('signedOut');
       vscode.window.showErrorMessage(
         `Colab Drive: ${err?.message ?? String(err)}`
       );
     }
   }
+
+  // Let the user load their own Google OAuth client_secret.json. Stored in
+  // SecretStorage (encrypted), so it survives reinstalls and isn't left as a
+  // plaintext file in the extension folder.
+  async function setupCredentials(): Promise<void> {
+    const picked = await vscode.window.showOpenDialog({
+      canSelectMany: false,
+      openLabel: 'Use this credentials file',
+      title: 'Select your Google OAuth client_secret.json',
+      filters: { 'OAuth client JSON': ['json'] },
+    });
+    if (!picked || picked.length === 0) {
+      return;
+    }
+    try {
+      const raw = await fs.promises.readFile(picked[0].fsPath, 'utf8');
+      await storeClientConfig(context, raw);
+      vscode.window.showInformationMessage(
+        'Colab Drive: credentials saved. Signing in…'
+      );
+      await connect(true);
+    } catch (err: any) {
+      vscode.window.showErrorMessage(
+        `Colab Drive: ${err?.message ?? String(err)}`
+      );
+    }
+  }
+
+  // Set up credentials
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'colabDrive.setupCredentials',
+      setupCredentials
+    )
+  );
 
   // Sign in
   context.subscriptions.push(
@@ -103,10 +150,14 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  // Auto-connect on startup if we already have a token. State stays
-  // 'connecting' (set above) during this check so the "Sign in" welcome never
-  // flashes; settle on 'signedOut' only if there's nothing to connect with.
-  if (await isSignedIn(context)) {
+  // Decide the startup state. Stays 'connecting' (set above) during these
+  // async checks so no welcome flashes before the real state is known:
+  //   no credentials -> prompt setup
+  //   have token     -> auto-connect
+  //   otherwise      -> prompt sign in
+  if (!(await hasClientConfig(context))) {
+    setState('needsCredentials');
+  } else if (await isSignedIn(context)) {
     await connect(false);
   } else {
     setState('signedOut');

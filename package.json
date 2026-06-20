@@ -2,7 +2,7 @@
   "name": "colab-drive",
   "displayName": "Colab Drive",
   "description": "Browse Colab and Jupyter notebooks from Google Drive inside VS Code",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "jvidal",
   "license": "MIT",
   "repository": {
@@ -43,6 +43,11 @@
     "viewsWelcome": [
       {
         "view": "colabDriveNotebooks",
+        "contents": "Colab Drive needs your own Google OAuth credentials to connect.\nCreate a free OAuth client (Desktop app) in Google Cloud, then load its client_secret.json here.\n[Set up credentials](command:colabDrive.setupCredentials)\nNeed help? See the [setup guide](https://github.com/jvidal86/colab-drive-vscode-plugin#setup).",
+        "when": "colabDrive.state == needsCredentials"
+      },
+      {
+        "view": "colabDriveNotebooks",
         "contents": "Connect your Google account to browse your Colab and Jupyter notebooks from Drive.\n[Sign in to Google](command:colabDrive.signIn)",
         "when": "colabDrive.state == signedOut"
       },
@@ -53,6 +58,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "colabDrive.setupCredentials",
+        "title": "Colab Drive: Set up credentials",
+        "icon": "$(key)"
+      },
       {
         "command": "colabDrive.signIn",
         "title": "Colab Drive: Sign in to Google",
@@ -88,6 +98,11 @@
           "command": "colabDrive.signOut",
           "when": "view == colabDriveNotebooks && colabDrive.state == signedIn",
           "group": "1_account"
+        },
+        {
+          "command": "colabDrive.setupCredentials",
+          "when": "view == colabDriveNotebooks",
+          "group": "9_setup"
         }
       ]
     },
