@@ -15,7 +15,7 @@ shared with a third party and there are no fees.
 npm install
 npm run compile
 npx vsce package
-code --install-extension colab-drive-1.1.2.vsix
+code --install-extension colab-drive-1.2.0.vsix
 ```
 
 **Option B — run from source:** open this folder in VS Code and press `F5` to
@@ -50,16 +50,19 @@ plaintext file — so they survive reinstalls and upgrades.
 
 1. Click the **Colab Drive** icon in the Activity Bar.
 2. Click **Sign in to Google** and complete the login in your browser.
-3. Your notebooks appear in the sidebar. Click one to open it.
+3. Your notebooks appear in the sidebar, **organized by Drive folder** — expand a
+   folder to see the notebooks inside it. Click a notebook to open it. Only
+   folders that contain notebooks (directly or deeper) are shown.
 
 To reconfigure, use **Set up credentials** again (in the `…` menu) to load a
 different client, or **Sign out** to clear the stored token.
 
 ## Configuration
 
-`colabDrive.folderName` (default: `Colab Notebooks`) — restricts the listing to
-a single Drive folder by name. Set it to an empty string to search your whole
-Drive.
+`colabDrive.folderName` (default: empty — searches your whole Drive) — set it to
+a Drive folder name to restrict the view to that folder's **subtree** (the folder
+and everything nested beneath it, for example `Colab Notebooks`). Leave it blank
+to show notebooks anywhere in your Drive, grouped by their folders.
 
 ## Notes
 

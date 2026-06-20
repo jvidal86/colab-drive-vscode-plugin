@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DriveService, NotebookFile } from './driveService';
+import { DriveService, FolderNode, NotebookFile } from './driveService';
 
 /**
  * The single source of truth for what the view is doing. Drives both the
@@ -15,7 +15,18 @@ export type AuthState =
   | 'signedIn'
   | 'signedOut';
 
-/** One row in the sidebar tree. */
+/** A folder row: expandable, holds its FolderNode so children render from the
+ *  already-built tree without another fetch. */
+export class FolderItem extends vscode.TreeItem {
+  constructor(public readonly node: FolderNode) {
+    super(node.name, vscode.TreeItemCollapsibleState.Collapsed);
+    this.iconPath = vscode.ThemeIcon.Folder;
+    this.contextValue = 'folder';
+    this.tooltip = node.name;
+  }
+}
+
+/** One notebook row in the sidebar tree. */
 export class NotebookItem extends vscode.TreeItem {
   constructor(public readonly file: NotebookFile) {
     super(file.name, vscode.TreeItemCollapsibleState.None);
@@ -37,20 +48,23 @@ export class NotebookItem extends vscode.TreeItem {
   }
 }
 
+/** Either kind of row the sidebar tree can hold. */
+export type DriveTreeItem = FolderItem | NotebookItem;
+
 /**
  * Feeds the sidebar. Holds a reference to the DriveService (set once the
- * user is signed in) and the configured folder name.
+ * user is signed in) and caches the built folder tree.
  */
 export class NotebookTreeProvider
-  implements vscode.TreeDataProvider<NotebookItem>
+  implements vscode.TreeDataProvider<DriveTreeItem>
 {
   private _onDidChangeTreeData = new vscode.EventEmitter<
-    NotebookItem | undefined | void
+    DriveTreeItem | undefined | void
   >();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private service: DriveService | undefined;
-  private cache: NotebookFile[] | undefined;
+  private root: FolderNode | undefined;
   private errorMessage: string | undefined;
   private setState: ((state: AuthState) => void) | undefined;
 
@@ -65,21 +79,26 @@ export class NotebookTreeProvider
 
   setService(service: DriveService | undefined): void {
     this.service = service;
-    this.cache = undefined;
+    this.root = undefined;
     this.errorMessage = undefined;
     this.refresh();
   }
 
   refresh(): void {
-    this.cache = undefined;
+    this.root = undefined;
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: NotebookItem): vscode.TreeItem {
+  getTreeItem(element: DriveTreeItem): vscode.TreeItem {
     return element;
   }
 
-  async getChildren(element?: NotebookItem): Promise<NotebookItem[]> {
+  async getChildren(element?: DriveTreeItem): Promise<DriveTreeItem[]> {
+    // Folder rows render their children straight from the already-built tree.
+    if (element instanceof FolderItem) {
+      return toItems(element.node);
+    }
+    // Notebook rows are leaves.
     if (element) {
       return [];
     }
@@ -87,27 +106,35 @@ export class NotebookTreeProvider
       return [];
     }
 
-    if (this.cache === undefined) {
-      // Stay in 'connecting' while the list loads so no welcome shows, then
+    if (this.root === undefined) {
+      // Stay in 'connecting' while the tree loads so no welcome shows, then
       // settle on 'signedIn' once we have a result (even an empty/error one).
       this.setState?.('connecting');
       try {
         const folderName = vscode.workspace
           .getConfiguration('colabDrive')
-          .get<string>('folderName', 'Colab Notebooks');
-        this.cache = await this.service.listNotebooks(folderName);
+          .get<string>('folderName', '');
+        this.root = await this.service.fetchNotebookForest(folderName);
         this.errorMessage = undefined;
       } catch (err: any) {
         this.errorMessage = err?.message ?? String(err);
         vscode.window.showErrorMessage(
           `Colab Drive: ${this.errorMessage}`
         );
-        this.cache = [];
+        this.root = { id: '', name: '', folders: [], notebooks: [] };
       } finally {
         this.setState?.('signedIn');
       }
     }
 
-    return this.cache.map((f) => new NotebookItem(f));
+    return toItems(this.root);
   }
+}
+
+/** Map a folder node's children to tree rows: subfolders first, then notebooks. */
+function toItems(node: FolderNode): DriveTreeItem[] {
+  return [
+    ...node.folders.map((f) => new FolderItem(f)),
+    ...node.notebooks.map((n) => new NotebookItem(n)),
+  ];
 }

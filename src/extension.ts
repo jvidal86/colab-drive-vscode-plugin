@@ -119,6 +119,47 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Show storage quota: report the signed-in account's Drive usage. This is
+  // the storage that backs your Colab/Jupyter notebooks — the Colab VM's own
+  // disk isn't reachable from the Drive API (see README).
+  context.subscriptions.push(
+    vscode.commands.registerCommand('colabDrive.showQuota', async () => {
+      try {
+        const drive =
+          driveService ?? new DriveService(await getAuthClient(context));
+        const q = await drive.getStorageQuota();
+
+        const used = q.usage ?? 0;
+        const parts: string[] = [];
+        if (q.limit && q.limit > 0) {
+          const pct = ((used / q.limit) * 100).toFixed(1);
+          parts.push(
+            `${formatBytes(used)} of ${formatBytes(q.limit)} used (${pct}%)`
+          );
+        } else {
+          parts.push(`${formatBytes(used)} used (no fixed limit)`);
+        }
+        if (q.usageInDrive !== undefined) {
+          parts.push(`Drive files: ${formatBytes(q.usageInDrive)}`);
+        }
+        if (q.usageInDriveTrash !== undefined) {
+          parts.push(`Trash: ${formatBytes(q.usageInDriveTrash)}`);
+        }
+
+        const who = q.userEmail ? ` (${q.userEmail})` : '';
+        vscode.window.showInformationMessage(
+          `Colab Drive storage${who}: ${parts.join(' · ')}`
+        );
+      } catch (err: any) {
+        vscode.window.showErrorMessage(
+          `Colab Drive: could not read storage quota — ${
+            err?.message ?? String(err)
+          }`
+        );
+      }
+    })
+  );
+
   // Open a notebook: download its JSON to a temp file, open in the editor.
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -170,6 +211,25 @@ export async function activate(context: vscode.ExtensionContext) {
  * from Drive are untrusted, so anything outside a safe set becomes '_' to
  * prevent path traversal or invalid characters.
  */
+/**
+ * Format a byte count as a human-readable string using binary units (the same
+ * GiB Drive's UI shows), e.g. 16106127360 -> "15.0 GB".
+ */
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) {
+    return '—';
+  }
+  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+  let value = bytes;
+  let i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i++;
+  }
+  const decimals = value >= 100 || i === 0 ? 0 : 1;
+  return `${value.toFixed(decimals)} ${units[i]}`;
+}
+
 function tempFileName(fileId: string, fileName: string): string {
   const base = fileName.replace(/[^\w.\- ]+/g, '_').trim() || 'notebook';
   const safeName = base.endsWith('.ipynb') ? base : `${base}.ipynb`;

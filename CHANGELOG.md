@@ -3,6 +3,25 @@
 All notable changes to the Colab Drive extension are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-06-20
+
+### Added
+- The sidebar now mirrors your Drive **folder hierarchy**: notebooks are grouped
+  under expandable folders instead of a single flat list. Only folders that
+  contain notebooks (directly or nested) are shown, so empty branches are pruned.
+
+### Changed
+- `colabDrive.folderName`, when set, now scopes the view to that folder's whole
+  **subtree** (recursive) rather than only its direct children.
+
+## [1.1.3] - 2026-06-20
+
+### Changed
+- `colabDrive.folderName` now defaults to **empty**, so the whole Drive is
+  searched out of the box. Previously it defaulted to `Colab Notebooks`, which
+  silently hid notebooks stored elsewhere (e.g. uploaded `.ipynb` files in My
+  Drive root). Folder filtering is now opt-in.
+
 ## [1.1.2] - 2026-06-20
 
 ### Added

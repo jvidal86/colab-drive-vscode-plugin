@@ -2,7 +2,7 @@
   "name": "colab-drive",
   "displayName": "Colab Drive",
   "description": "Browse Colab and Jupyter notebooks from Google Drive inside VS Code",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "publisher": "jvidal",
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -54,7 +54,7 @@
       },
       {
         "view": "colabDriveNotebooks",
-        "contents": "No notebooks found.\nBy default only the folder named in `colabDrive.folderName` is searched — leave that setting blank to search your whole Drive, then refresh.\n[Refresh](command:colabDrive.refresh)",
+        "contents": "No notebooks found in your Drive.\nIf you set `colabDrive.folderName`, only that folder is searched — clear it to search everywhere, then refresh.\n[Refresh](command:colabDrive.refresh)",
         "when": "colabDrive.state == signedIn"
       }
     ],
@@ -79,6 +79,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "colabDrive.showQuota",
+        "title": "Colab Drive: Show storage usage",
+        "icon": "$(database)"
+      },
+      {
         "command": "colabDrive.openNotebook",
         "title": "Open notebook"
       }
@@ -88,6 +93,11 @@
         {
           "command": "colabDrive.refresh",
           "when": "view == colabDriveNotebooks",
+          "group": "navigation"
+        },
+        {
+          "command": "colabDrive.showQuota",
+          "when": "view == colabDriveNotebooks && colabDrive.state == signedIn",
           "group": "navigation"
         },
         {
@@ -112,8 +122,8 @@
       "properties": {
         "colabDrive.folderName": {
           "type": "string",
-          "default": "Colab Notebooks",
-          "description": "Name of the Google Drive folder to list notebooks from. Leave blank to search your entire Drive."
+          "default": "",
+          "description": "Restrict the notebook listing to a single Google Drive folder by name (direct children only). Leave blank (the default) to search your entire Drive."
         }
       }
     }
