@@ -3,13 +3,13 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { google } from 'googleapis';
+import { auth as googleAuth } from '@googleapis/drive';
 
-// Use the OAuth2Client type bundled with googleapis (via googleapis-common)
-// so it stays compatible with google.drive(). Importing it from the
-// standalone google-auth-library package pulls in a different copy whose
-// private fields make the types structurally incompatible.
-type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
+// Derive the OAuth2Client type from the auth namespace shipped with
+// @googleapis/drive so it stays compatible with drive(). Importing OAuth2Client
+// from a separately-resolved google-auth-library copy would reintroduce the
+// "separate declarations of private property" type mismatch.
+type OAuth2Client = InstanceType<typeof googleAuth.OAuth2>;
 
 const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
 const REDIRECT_PORT = 8765;
@@ -101,7 +101,7 @@ export async function getAuthClient(
   forceLogin = false
 ): Promise<OAuth2Client> {
   const { clientId, clientSecret } = await loadClientConfig(context);
-  const oAuth2Client = new google.auth.OAuth2(
+  const oAuth2Client = new googleAuth.OAuth2(
     clientId,
     clientSecret,
     REDIRECT_URI

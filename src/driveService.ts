@@ -1,8 +1,8 @@
-import { google, drive_v3 } from 'googleapis';
+import { drive as createDrive, drive_v3, auth as googleAuth } from '@googleapis/drive';
 
-// See note in auth.ts: derive OAuth2Client from google.auth.OAuth2 to avoid
-// the duplicate google-auth-library type mismatch.
-type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
+// See note in auth.ts: derive OAuth2Client from the drive package's auth
+// namespace to avoid the duplicate google-auth-library type mismatch.
+type OAuth2Client = InstanceType<typeof googleAuth.OAuth2>;
 
 export interface NotebookFile {
   id: string;
@@ -35,7 +35,7 @@ export class DriveService {
   private drive: drive_v3.Drive;
 
   constructor(auth: OAuth2Client) {
-    this.drive = google.drive({ version: 'v3', auth });
+    this.drive = createDrive({ version: 'v3', auth });
   }
 
   /** Look up a folder's ID by name. Returns undefined if not found. */
