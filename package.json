@@ -1,0 +1,109 @@
+{
+  "name": "colab-drive",
+  "displayName": "Colab Drive",
+  "description": "Browse Colab and Jupyter notebooks from Google Drive inside VS Code",
+  "version": "0.0.1",
+  "publisher": "jvidal",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "colab-drive",
+          "title": "Colab Drive",
+          "icon": "resources/notebook.svg"
+        }
+      ]
+    },
+    "views": {
+      "colab-drive": [
+        {
+          "id": "colabDriveNotebooks",
+          "name": "Notebooks",
+          "icon": "resources/notebook.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "colabDriveNotebooks",
+        "contents": "Connect your Google account to browse your Colab and Jupyter notebooks from Drive.\n[Sign in to Google](command:colabDrive.signIn)",
+        "when": "colabDrive.state == signedOut"
+      },
+      {
+        "view": "colabDriveNotebooks",
+        "contents": "No notebooks found.\nBy default only the folder named in `colabDrive.folderName` is searched — leave that setting blank to search your whole Drive, then refresh.\n[Refresh](command:colabDrive.refresh)",
+        "when": "colabDrive.state == signedIn"
+      }
+    ],
+    "commands": [
+      {
+        "command": "colabDrive.signIn",
+        "title": "Colab Drive: Sign in to Google",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "colabDrive.signOut",
+        "title": "Colab Drive: Sign out"
+      },
+      {
+        "command": "colabDrive.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "colabDrive.openNotebook",
+        "title": "Open notebook"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "colabDrive.refresh",
+          "when": "view == colabDriveNotebooks",
+          "group": "navigation"
+        },
+        {
+          "command": "colabDrive.signIn",
+          "when": "view == colabDriveNotebooks && colabDrive.state == signedOut",
+          "group": "navigation"
+        },
+        {
+          "command": "colabDrive.signOut",
+          "when": "view == colabDriveNotebooks && colabDrive.state == signedIn",
+          "group": "1_account"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Colab Drive",
+      "properties": {
+        "colabDrive.folderName": {
+          "type": "string",
+          "default": "Colab Notebooks",
+          "description": "Name of the Google Drive folder to list notebooks from. Leave blank to search your entire Drive."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "dependencies": {
+    "googleapis": "^173.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
