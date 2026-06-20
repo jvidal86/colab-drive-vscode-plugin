@@ -4,6 +4,15 @@
   "description": "Browse Colab and Jupyter notebooks from Google Drive inside VS Code",
   "version": "1.0.0",
   "publisher": "jvidal",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jvidal86/colab-drive-vscode-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jvidal86/colab-drive-vscode-plugin/issues"
+  },
+  "homepage": "https://github.com/jvidal86/colab-drive-vscode-plugin#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
