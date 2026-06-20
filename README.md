@@ -15,7 +15,7 @@ shared with a third party and there are no fees.
 npm install
 npm run compile
 npx vsce package
-code --install-extension colab-drive-1.1.1.vsix
+code --install-extension colab-drive-1.1.2.vsix
 ```
 
 **Option B — run from source:** open this folder in VS Code and press `F5` to

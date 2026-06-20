@@ -1,8 +1,18 @@
-.vscode/**
+# Source & build config (only compiled out/ ships)
 src/**
-.gitignore
 tsconfig.json
+**/*.ts
 **/*.map
+
+# Repo / tooling files
+.vscode/**
+.github/**
+.gitignore
+.git/**
+*.vsix
+/tmp/**
+
+# Local secrets (never package)
 client_secret.json
 client_secrets.json
 token.json
