@@ -2,7 +2,7 @@
   "name": "colab-drive",
   "displayName": "Colab Drive",
   "description": "Browse Colab and Jupyter notebooks from Google Drive inside VS Code",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "publisher": "jvidal",
   "engines": {
     "vscode": "^1.85.0"
